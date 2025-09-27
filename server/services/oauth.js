@@ -99,4 +99,16 @@ export default ({strapi}) => ({
 </body>
 </html>`;
 },
+  // Sign In Error
+  renderSignUpError(message) {
+    return `
+<!doctype html>
+<html>
+<head></head>
+<body>
+<h3>Authentication failed</h3>
+<p>${message}</p>
+</body>
+</html>`;
+  },
 });

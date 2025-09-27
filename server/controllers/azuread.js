@@ -79,9 +79,6 @@ async function azureAdSignInCallback(ctx) {
 
   params.append("code_verifier", ctx.session.codeVerifier);
 
-  // Include the code verifier from the session
-  params.append("code_verifier", ctx.session.codeVerifier);
-
   try {
     const tokenEndpoint = OAUTH_TOKEN_ENDPOINT(config["AZUREAD_TENANT_ID"]);
     const response = await axios.post(tokenEndpoint, params, {
