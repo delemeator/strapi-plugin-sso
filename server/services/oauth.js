@@ -80,13 +80,8 @@ export default ({strapi}) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(jwtToken, user, nonce) {
-    // get REMEMBER_ME from config
-    const config = strapi.config.get("plugin::strapi-plugin-sso");
-    const REMEMBER_ME = config["REMEMBER_ME"];
-    const isRememberMe = !!REMEMBER_ME
-
-    return `
+  renderSignUpSuccess(user, nonce) {
+  return `
 <!doctype html>
 <html>
 <head>
@@ -95,30 +90,13 @@ export default ({strapi}) => ({
 </noscript>
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
-  if(${isRememberMe}){
-    localStorage.setItem('jwtToken', '"${jwtToken}"');
-  }else{
-    document.cookie = 'jwtToken=${encodeURIComponent(jwtToken)}; Path=/';
-  }
-  localStorage.setItem('isLoggedIn', 'true');
-  location.href = '${strapi.config.admin.url}'
+   // Just redirect to admin URL, Strapi already set cookies
+   location.href = '${strapi.config.admin.url}';
  })
 </script>
 </head>
 <body>
 </body>
 </html>`;
-  },
-  // Sign In Error
-  renderSignUpError(message) {
-    return `
-<!doctype html>
-<html>
-<head></head>
-<body>
-<h3>Authentication failed</h3>
-<p>${message}</p>
-</body>
-</html>`;
-  },
+},
 });

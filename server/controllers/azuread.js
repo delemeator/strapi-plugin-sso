@@ -58,7 +58,7 @@ async function azureAdSignIn(ctx) {
 async function azureAdSignInCallback(ctx) {
   const config = configValidation();
   const userService = strapi.service('admin::user')
-  const tokenService = strapi.service('admin::token')
+  const sessionManager = strapi.sessionManager('admin');
   const oauthService = strapi.plugin("strapi-plugin-sso").service("oauth");
   const roleService = strapi.plugin("strapi-plugin-sso").service("role");
   const whitelistService = strapi.plugin('strapi-plugin-sso').service('whitelist')
@@ -76,6 +76,8 @@ async function azureAdSignInCallback(ctx) {
   params.append("client_secret", config["AZUREAD_OAUTH_CLIENT_SECRET"]);
   params.append("redirect_uri", config["AZUREAD_OAUTH_REDIRECT_URI"]);
   params.append("grant_type", OAUTH_GRANT_TYPE);
+
+  params.append("code_verifier", ctx.session.codeVerifier);
 
   // Include the code verifier from the session
   params.append("code_verifier", ctx.session.codeVerifier);
@@ -102,11 +104,14 @@ async function azureAdSignInCallback(ctx) {
 
     const dbUser = await userService.findOneByEmail(userResponse.data.email);
     let activateUser;
-    let jwtToken;
+    let tokens;
 
     if (dbUser) {
       activateUser = dbUser;
-      jwtToken = await tokenService.createJwtToken(dbUser);
+      tokens = await sessionManager.login(dbUser.id, {
+        deviceId: randomUUID(),
+        rememberMe: true,
+      });
     } else {
       const azureAdRoles = await roleService.azureAdRoles();
       const roles =
@@ -126,7 +131,10 @@ async function azureAdSignInCallback(ctx) {
         defaultLocale,
         roles
       );
-      jwtToken = await tokenService.createJwtToken(activateUser);
+      tokens = await sessionManager.login(activateUser.id, {
+        deviceId: randomUUID(),
+        rememberMe: true,
+      });
 
       // Trigger webhook
       await oauthService.triggerWebHook(activateUser);
@@ -136,7 +144,6 @@ async function azureAdSignInCallback(ctx) {
 
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      jwtToken,
       activateUser,
       nonce
     );
