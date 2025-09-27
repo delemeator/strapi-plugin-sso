@@ -38,6 +38,7 @@ async function azureAdSignIn(ctx) {
 
   // Store the code verifier in the session
   ctx.session.codeVerifier = codeVerifier;
+  console.log("codeVerifier", codeVerifier);
 
   const state = crypto.getRandomValues(Buffer.alloc(32)).toString('base64url');
   ctx.session.oidcState = state;

@@ -370,6 +370,7 @@ async function azureAdSignIn(ctx) {
   const endpoint = OAUTH_ENDPOINT(config2["AZUREAD_TENANT_ID"]);
   const { code_verifier: codeVerifier, code_challenge: codeChallenge } = pkceChallenge__default.default();
   ctx.session.codeVerifier = codeVerifier;
+  console.log("codeVerifier", codeVerifier);
   const state = crypto.getRandomValues(buffer.Buffer.alloc(32)).toString("base64url");
   ctx.session.oidcState = state;
   const params = new URLSearchParams();
