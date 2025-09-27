@@ -360,6 +360,19 @@ const configValidation$1 = () => {
     "AZUREAD_OAUTH_CLIENT_ID, AZUREAD_OAUTH_CLIENT_SECRET, and AZUREAD_TENANT_ID are required"
   );
 };
+const buildCookieOptionsWithExpiry = (absoluteExpiresAt) => {
+  const isProduction = strapi.config.get("environment") === "production";
+  const domain = strapi.config.get("admin.auth.domain");
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "lax",
+    overwrite: true,
+    domain,
+    expires: absoluteExpiresAt,
+    path: "/admin"
+  };
+};
 const OAUTH_ENDPOINT = (tenantId) => `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`;
 const OAUTH_TOKEN_ENDPOINT = (tenantId) => `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
 const OAUTH_USER_INFO_ENDPOINT = "https://graph.microsoft.com/oidc/userinfo";
@@ -443,23 +456,16 @@ async function azureAdSignInCallback(ctx) {
     }
     const { token: refreshToken, absoluteExpiresAt } = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
     const { token: accessToken } = await sessionManager.generateAccessToken(refreshToken);
-    oauthService.triggerSignInSuccess(activateUser);
-    const nonce = crypto$1.randomUUID();
+    const cookieOptions = buildCookieOptionsWithExpiry(absoluteExpiresAt);
+    ctx.cookies.set("strapi_admin_refresh", refreshToken, cookieOptions);
+    const isProduction = strapi.config.get("environment") === "production";
+    const domain = strapi.config.get("admin.auth.domain");
     ctx.cookies.set("jwtToken", accessToken, {
       httpOnly: false,
-      // exposed to frontend
-      secure: strapi.config.get("environment") === "production",
+      secure: isProduction,
       overwrite: true,
-      path: "/"
+      domain
     });
-    ctx.cookies.set("strapi_admin_refresh", refreshToken, {
-      httpOnly: true,
-      secure: strapi.config.get("environment") === "production",
-      sameSite: "lax",
-      overwrite: true,
-      path: "/admin"
-    });
-    ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.redirect(strapi.config.admin.url);
   } catch (e) {
     console.error(e);

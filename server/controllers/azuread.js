@@ -1,6 +1,5 @@
 import axios from "axios";
 import {Buffer} from 'buffer';
-import { randomUUID } from "crypto";
 import pkceChallenge from "pkce-challenge";
 
 const configValidation = () => {
@@ -15,6 +14,23 @@ const configValidation = () => {
   throw new Error(
     "AZUREAD_OAUTH_CLIENT_ID, AZUREAD_OAUTH_CLIENT_SECRET, and AZUREAD_TENANT_ID are required"
   );
+};
+
+export const buildCookieOptionsWithExpiry = (
+  absoluteExpiresAt
+) => {
+  const isProduction = strapi.config.get('environment') === 'production';
+  const domain = strapi.config.get('admin.auth.domain');
+
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax',
+    overwrite: true,
+    domain,
+    expires: absoluteExpiresAt,
+    path: '/admin',
+  };
 };
 
 /**
@@ -133,25 +149,19 @@ async function azureAdSignInCallback(ctx) {
     const { token: accessToken } =
       await sessionManager.generateAccessToken(refreshToken);
 
-    // Login Event Call
-    oauthService.triggerSignInSuccess(activateUser);
+    const cookieOptions = buildCookieOptionsWithExpiry(absoluteExpiresAt);
+    ctx.cookies.set('strapi_admin_refresh', refreshToken, cookieOptions);
 
-    const nonce = randomUUID();
+    const isProduction = strapi.config.get('environment') === 'production';
+    const domain = strapi.config.get('admin.auth.domain');
+
     ctx.cookies.set('jwtToken', accessToken, {
-      httpOnly: false,  // exposed to frontend
-      secure: strapi.config.get('environment') === 'production',
+      httpOnly: false,
+      secure: isProduction,
       overwrite: true,
-      path: '/',
-    });
-    ctx.cookies.set('strapi_admin_refresh', refreshToken, {
-      httpOnly: true,
-      secure: strapi.config.get('environment') === 'production',
-      sameSite: 'lax',
-      overwrite: true,
-      path: '/admin',
+      domain,
     });
 
-    ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.redirect(strapi.config.admin.url);
   } catch (e) {
     console.error(e);
