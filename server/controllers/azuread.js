@@ -127,22 +127,32 @@ async function azureAdSignInCallback(ctx) {
       // Trigger webhook
       await oauthService.triggerWebHook(activateUser);
     }
-    const refreshToken = await sessionManager.generateRefreshToken(activateUser.id, null, {
-      type: 'refresh',
-    });
-    const accessToken = await sessionManager.generateAccessToken(refreshToken.token);
+    const { token: refreshToken, absoluteExpiresAt } =
+      await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'refresh' });
+
+    const { token: accessToken } =
+      await sessionManager.generateAccessToken(refreshToken);
+
     // Login Event Call
     oauthService.triggerSignInSuccess(activateUser);
 
     const nonce = randomUUID();
-    const html = oauthService.renderSignUpSuccess(
-      accessToken.token,
-      refreshToken.token,
-      activateUser,
-      nonce
-    );
+    ctx.cookies.set('jwtToken', accessToken, {
+      httpOnly: false,  // exposed to frontend
+      secure: strapi.config.get('environment') === 'production',
+      overwrite: true,
+      path: '/',
+    });
+    ctx.cookies.set('strapi_admin_refresh', refreshToken, {
+      httpOnly: true,
+      secure: strapi.config.get('environment') === 'production',
+      sameSite: 'lax',
+      overwrite: true,
+      path: '/admin',
+    });
+
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
-    ctx.send(html);
+    ctx.redirect(strapi.config.admin.url);
   } catch (e) {
     console.error(e);
     ctx.send(oauthService.renderSignUpError(e.message));
