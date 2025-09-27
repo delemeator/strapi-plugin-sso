@@ -438,9 +438,11 @@ async function azureAdSignInCallback(ctx) {
     const refreshToken = await sessionManager.generateRefreshToken(activateUser.id, null, {
       type: "refresh"
     });
+    const accessToken = await sessionManager.generateAccessToken(refreshToken);
     oauthService.triggerSignInSuccess(activateUser);
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
+      accessToken,
       refreshToken,
       activateUser,
       nonce
@@ -799,7 +801,7 @@ const oauth = ({ strapi: strapi2 }) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(refreshToken, user, nonce) {
+  renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
     const config2 = strapi2.config.get("plugin::strapi-plugin-sso");
     const REMEMBER_ME = config2["REMEMBER_ME"];
     const isRememberMe = !!REMEMBER_ME;
@@ -813,9 +815,11 @@ const oauth = ({ strapi: strapi2 }) => ({
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
   if(${isRememberMe}){
-    localStorage.setItem('strapi_admin_refresh', '"${refreshToken}"');
+    localStorage.setItem('jwtToken', '"${jwtToken}"');
+    localStorage.setItem('refreshToken', '"${refreshToken}"');
   }else{
-    document.cookie = 'strapi_admin_refresh=${encodeURIComponent(refreshToken)}; Path=/';
+    document.cookie = 'jwtToken=${encodeURIComponent(jwtToken)}; Path=/';
+    document.cookie = 'refreshToken=${encodeURIComponent(refreshToken)}; Path=/';
   }
   localStorage.setItem('isLoggedIn', 'true');
   location.href = '${strapi2.config.admin.url}'
