@@ -128,13 +128,15 @@ async function azureAdSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     const refreshToken = await sessionManager.generateRefreshToken(activateUser.id, null, {
-        type: 'refresh',
-      });
+      type: 'refresh',
+    });
+    const accessToken = await sessionManager.generateAccessToken(refreshToken);
     // Login Event Call
     oauthService.triggerSignInSuccess(activateUser);
 
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
+      accessToken,
       refreshToken,
       activateUser,
       nonce

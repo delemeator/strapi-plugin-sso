@@ -80,7 +80,7 @@ export default ({strapi}) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(refreshToken, user, nonce) {
+  renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
     // get REMEMBER_ME from config
     const config = strapi.config.get("plugin::strapi-plugin-sso");
     const REMEMBER_ME = config["REMEMBER_ME"];
@@ -96,9 +96,11 @@ export default ({strapi}) => ({
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
   if(${isRememberMe}){
-    localStorage.setItem('strapi_admin_refresh', '"${refreshToken}"');
+    localStorage.setItem('jwtToken', '"${jwtToken}"');
+    localStorage.setItem('refreshToken', '"${refreshToken}"');
   }else{
-    document.cookie = 'strapi_admin_refresh=${encodeURIComponent(refreshToken)}; Path=/';
+    document.cookie = 'jwtToken=${encodeURIComponent(jwtToken)}; Path=/';
+    document.cookie = 'refreshToken=${encodeURIComponent(refreshToken)}; Path=/';
   }
   localStorage.setItem('isLoggedIn', 'true');
   location.href = '${strapi.config.admin.url}'
