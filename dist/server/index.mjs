@@ -398,7 +398,6 @@ async function azureAdSignInCallback(ctx) {
   params.append("redirect_uri", config2["AZUREAD_OAUTH_REDIRECT_URI"]);
   params.append("grant_type", OAUTH_GRANT_TYPE);
   params.append("code_verifier", ctx.session.codeVerifier);
-  params.append("code_verifier", ctx.session.codeVerifier);
   try {
     const tokenEndpoint = OAUTH_TOKEN_ENDPOINT(config2["AZUREAD_TENANT_ID"]);
     const response = await axios.post(tokenEndpoint, params, {
@@ -821,6 +820,18 @@ const oauth = ({ strapi: strapi2 }) => ({
 <\/script>
 </head>
 <body>
+</body>
+</html>`;
+  },
+  // Sign In Error
+  renderSignUpError(message) {
+    return `
+<!doctype html>
+<html>
+<head></head>
+<body>
+<h3>Authentication failed</h3>
+<p>${message}</p>
 </body>
 </html>`;
   }
