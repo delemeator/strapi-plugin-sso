@@ -444,12 +444,12 @@ async function azureAdSignInCallback(ctx) {
     const refreshToken = await sessionManager.generateRefreshToken(activateUser.id, null, {
       type: "refresh"
     });
-    const accessToken = await sessionManager.generateAccessToken(refreshToken);
+    const accessToken = await sessionManager.generateAccessToken(refreshToken.token);
     oauthService.triggerSignInSuccess(activateUser);
     const nonce = crypto$1.randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      accessToken,
-      refreshToken,
+      accessToken.token,
+      refreshToken.token,
       activateUser,
       nonce
     );
