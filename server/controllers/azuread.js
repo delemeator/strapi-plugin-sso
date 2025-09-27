@@ -38,7 +38,6 @@ async function azureAdSignIn(ctx) {
 
   // Store the code verifier in the session
   ctx.session.codeVerifier = codeVerifier;
-  console.log("codeVerifier", codeVerifier);
 
   const state = crypto.getRandomValues(Buffer.alloc(32)).toString('base64url');
   ctx.session.oidcState = state;
@@ -102,14 +101,9 @@ async function azureAdSignInCallback(ctx) {
 
     const dbUser = await userService.findOneByEmail(userResponse.data.email);
     let activateUser;
-    let tokens;
 
     if (dbUser) {
       activateUser = dbUser;
-      tokens = await sessionManager.login(dbUser.id, {
-        deviceId: randomUUID(),
-        rememberMe: true,
-      });
     } else {
       const azureAdRoles = await roleService.azureAdRoles();
       const roles =
@@ -129,19 +123,19 @@ async function azureAdSignInCallback(ctx) {
         defaultLocale,
         roles
       );
-      tokens = await sessionManager.login(activateUser.id, {
-        deviceId: randomUUID(),
-        rememberMe: true,
-      });
 
       // Trigger webhook
       await oauthService.triggerWebHook(activateUser);
     }
+    const refreshToken = await sessionManager.generateRefreshToken(activateUser.id, null, {
+        type: 'refresh',
+      });
     // Login Event Call
     oauthService.triggerSignInSuccess(activateUser);
 
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
+      refreshToken,
       activateUser,
       nonce
     );

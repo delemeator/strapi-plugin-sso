@@ -364,7 +364,6 @@ async function azureAdSignIn(ctx) {
   const endpoint = OAUTH_ENDPOINT(config2["AZUREAD_TENANT_ID"]);
   const { code_verifier: codeVerifier, code_challenge: codeChallenge } = pkceChallenge();
   ctx.session.codeVerifier = codeVerifier;
-  console.log("codeVerifier", codeVerifier);
   const state = crypto.getRandomValues(Buffer.alloc(32)).toString("base64url");
   ctx.session.oidcState = state;
   const params = new URLSearchParams();
@@ -417,13 +416,8 @@ async function azureAdSignInCallback(ctx) {
     await whitelistService.checkWhitelistForEmail(userResponse.data.email);
     const dbUser = await userService.findOneByEmail(userResponse.data.email);
     let activateUser;
-    let tokens;
     if (dbUser) {
       activateUser = dbUser;
-      tokens = await sessionManager.login(dbUser.id, {
-        deviceId: randomUUID(),
-        rememberMe: true
-      });
     } else {
       const azureAdRoles = await roleService.azureAdRoles();
       const roles2 = azureAdRoles && azureAdRoles["roles"] ? azureAdRoles["roles"].map((role2) => ({
@@ -439,15 +433,15 @@ async function azureAdSignInCallback(ctx) {
         defaultLocale,
         roles2
       );
-      tokens = await sessionManager.login(activateUser.id, {
-        deviceId: randomUUID(),
-        rememberMe: true
-      });
       await oauthService.triggerWebHook(activateUser);
     }
+    const refreshToken = await sessionManager.generateRefreshToken(activateUser.id, null, {
+      type: "refresh"
+    });
     oauthService.triggerSignInSuccess(activateUser);
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
+      refreshToken,
       activateUser,
       nonce
     );
@@ -805,7 +799,10 @@ const oauth = ({ strapi: strapi2 }) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(user, nonce) {
+  renderSignUpSuccess(refreshToken, user, nonce) {
+    const config2 = strapi2.config.get("plugin::strapi-plugin-sso");
+    const REMEMBER_ME = config2["REMEMBER_ME"];
+    const isRememberMe = !!REMEMBER_ME;
     return `
 <!doctype html>
 <html>
@@ -815,8 +812,13 @@ const oauth = ({ strapi: strapi2 }) => ({
 </noscript>
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
-   // Just redirect to admin URL, Strapi already set cookies
-   location.href = '${strapi2.config.admin.url}';
+  if(${isRememberMe}){
+    localStorage.setItem('strapi_admin_refresh', '"${refreshToken}"');
+  }else{
+    document.cookie = 'strapi_admin_refresh=${encodeURIComponent(refreshToken)}; Path=/';
+  }
+  localStorage.setItem('isLoggedIn', 'true');
+  location.href = '${strapi2.config.admin.url}'
  })
 <\/script>
 </head>

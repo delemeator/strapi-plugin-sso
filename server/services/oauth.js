@@ -80,8 +80,13 @@ export default ({strapi}) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(user, nonce) {
-  return `
+  renderSignUpSuccess(refreshToken, user, nonce) {
+    // get REMEMBER_ME from config
+    const config = strapi.config.get("plugin::strapi-plugin-sso");
+    const REMEMBER_ME = config["REMEMBER_ME"];
+    const isRememberMe = !!REMEMBER_ME
+
+    return `
 <!doctype html>
 <html>
 <head>
@@ -90,15 +95,20 @@ export default ({strapi}) => ({
 </noscript>
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
-   // Just redirect to admin URL, Strapi already set cookies
-   location.href = '${strapi.config.admin.url}';
+  if(${isRememberMe}){
+    localStorage.setItem('strapi_admin_refresh', '"${refreshToken}"');
+  }else{
+    document.cookie = 'strapi_admin_refresh=${encodeURIComponent(refreshToken)}; Path=/';
+  }
+  localStorage.setItem('isLoggedIn', 'true');
+  location.href = '${strapi.config.admin.url}'
  })
 </script>
 </head>
 <body>
 </body>
 </html>`;
-},
+  },
   // Sign In Error
   renderSignUpError(message) {
     return `
