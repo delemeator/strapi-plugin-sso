@@ -816,7 +816,7 @@ const oauth = ({ strapi: strapi2 }) => ({
 </noscript>
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
-  localStorage.setItem('jwtToken', JSON.stringify(jwtToken));
+  localStorage.setItem('jwtToken', ${JSON.stringify(jwtToken)});
   localStorage.setItem('isLoggedIn', 'true');
   location.href = '${strapi2.config.admin.url}'
  })
