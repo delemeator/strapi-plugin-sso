@@ -128,7 +128,7 @@ async function azureAdSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     // Generate tokens
-    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'refresh' });
+    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'session' });
     console.log('refreshResponse', refreshResponse)
     const accessResponse = await sessionManager.generateAccessToken(refreshResponse.token);
     console.log('accessResponse', accessResponse)
@@ -139,7 +139,7 @@ async function azureAdSignInCallback(ctx) {
     // Render HTML/JS that sets tokens in localStorage or cookies (like Strapi expects)
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      accessResponse.token,
+      refreshResponse.token,
       refreshResponse.token,
       activateUser,
       nonce

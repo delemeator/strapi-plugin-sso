@@ -441,14 +441,14 @@ async function azureAdSignInCallback(ctx) {
       );
       await oauthService.triggerWebHook(activateUser);
     }
-    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
+    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "session" });
     console.log("refreshResponse", refreshResponse);
     const accessResponse = await sessionManager.generateAccessToken(refreshResponse.token);
     console.log("accessResponse", accessResponse);
     oauthService.triggerSignInSuccess(activateUser);
     const nonce = crypto$1.randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      accessResponse.token,
+      refreshResponse.token,
       refreshResponse.token,
       activateUser,
       nonce
