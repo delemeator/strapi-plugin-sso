@@ -1,6 +1,7 @@
 import axios from "axios";
 import {Buffer} from 'buffer';
 import pkceChallenge from "pkce-challenge";
+import { randomUUID } from 'crypto';
 
 const configValidation = () => {
   const config = strapi.config.get("plugin::strapi-plugin-sso");
