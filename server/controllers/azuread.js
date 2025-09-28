@@ -17,23 +17,6 @@ const configValidation = () => {
   );
 };
 
-export const buildCookieOptionsWithExpiry = (
-  absoluteExpiresAt
-) => {
-  const isProduction = strapi.config.get('environment') === 'production';
-  const domain = strapi.config.get('admin.auth.domain');
-
-  return {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: 'lax',
-    overwrite: true,
-    domain,
-    expires: new Date(absoluteExpiresAt),
-    path: '/admin',
-  };
-};
-
 /**
  * Common constants
  */
@@ -145,10 +128,10 @@ async function azureAdSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     // Generate tokens
-    const { token: refreshToken } =
-      await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'refresh' });
-    const { token: accessToken } =
-      await sessionManager.generateAccessToken(refreshToken);
+    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'refresh' });
+    console.log('refreshResponse', refreshResponse)
+    const accessResponse = await sessionManager.generateAccessToken(refreshResponse.token);
+    console.log('accessResponse', accessResponse)
 
     // Trigger login success
     oauthService.triggerSignInSuccess(activateUser);
@@ -156,8 +139,8 @@ async function azureAdSignInCallback(ctx) {
     // Render HTML/JS that sets tokens in localStorage or cookies (like Strapi expects)
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      accessToken,
-      refreshToken,
+      accessResponse.token,
+      refreshResponse.token,
       activateUser,
       nonce
     );

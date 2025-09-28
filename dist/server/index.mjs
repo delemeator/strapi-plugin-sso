@@ -435,13 +435,15 @@ async function azureAdSignInCallback(ctx) {
       );
       await oauthService.triggerWebHook(activateUser);
     }
-    const { token: refreshToken } = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
-    const { token: accessToken } = await sessionManager.generateAccessToken(refreshToken);
+    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
+    console.log("refreshResponse", refreshResponse);
+    const accessResponse = await sessionManager.generateAccessToken(refreshResponse.token);
+    console.log("accessResponse", accessResponse);
     oauthService.triggerSignInSuccess(activateUser);
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      accessToken,
-      refreshToken,
+      accessResponse.token,
+      refreshResponse.token,
       activateUser,
       nonce
     );
@@ -800,7 +802,6 @@ const oauth = ({ strapi: strapi2 }) => ({
   },
   // Sign In Success
   renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
-    strapi2.config.get("plugin::strapi-plugin-sso");
     return `
 <!doctype html>
 <html>

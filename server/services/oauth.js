@@ -81,9 +81,6 @@ export default ({strapi}) => ({
   },
   // Sign In Success
   renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
-    // get REMEMBER_ME from config
-    const config = strapi.config.get("plugin::strapi-plugin-sso");
-
     return `
 <!doctype html>
 <html>
