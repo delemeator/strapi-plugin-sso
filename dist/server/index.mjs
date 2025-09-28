@@ -381,7 +381,7 @@ async function azureAdSignIn(ctx) {
 async function azureAdSignInCallback(ctx) {
   const config2 = configValidation$1();
   const userService = strapi.service("admin::user");
-  const sessionManager = strapi.sessionManager("admin");
+  const jwtService = strapi.plugin("users-permissions").service("jwt");
   const oauthService = strapi.plugin("strapi-plugin-sso").service("oauth");
   const roleService = strapi.plugin("strapi-plugin-sso").service("role");
   const whitelistService = strapi.plugin("strapi-plugin-sso").service("whitelist");
@@ -435,16 +435,11 @@ async function azureAdSignInCallback(ctx) {
       );
       await oauthService.triggerWebHook(activateUser);
     }
-    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "session" });
-    console.log("refreshResponse", refreshResponse);
-    const accessResponse = await sessionManager.generateAccessToken(refreshResponse.token);
-    console.log("accessResponse", accessResponse);
+    const token = jwtService.issue({ id: activateUser.id });
     oauthService.triggerSignInSuccess(activateUser);
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      refreshResponse.token,
-      refreshResponse.token,
-      activateUser,
+      token,
       nonce
     );
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
@@ -801,7 +796,7 @@ const oauth = ({ strapi: strapi2 }) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
+  renderSignUpSuccess(jwtToken, nonce) {
     return `
 <!doctype html>
 <html>
@@ -812,7 +807,6 @@ const oauth = ({ strapi: strapi2 }) => ({
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
   localStorage.setItem('jwtToken', ${JSON.stringify(jwtToken)});
-  localStorage.setItem('isLoggedIn', 'true');
   location.href = '${strapi2.config.admin.url}'
  })
 <\/script>
