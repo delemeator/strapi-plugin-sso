@@ -28,7 +28,7 @@ export const buildCookieOptionsWithExpiry = (
     sameSite: 'lax',
     overwrite: true,
     domain,
-    expires: absoluteExpiresAt,
+    expires: new Date(absoluteExpiresAt),
     path: '/admin',
   };
 };
