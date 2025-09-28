@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Buffer } from "buffer";
-import { randomUUID } from "crypto";
+import { randomUUID as randomUUID$1 } from "crypto";
 import pkceChallenge from "pkce-challenge";
 import strapiUtils from "@strapi/utils";
 import generator from "generate-password";
@@ -214,7 +214,7 @@ async function googleSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID();
+    const nonce = randomUUID$1();
     const html = oauthService.renderSignUpSuccess(jwtToken, activateUser, nonce);
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.send(html);
@@ -332,7 +332,7 @@ async function cognitoSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID();
+    const nonce = randomUUID$1();
     const html = oauthService.renderSignUpSuccess(jwtToken, activateUser, nonce);
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.send(html);
@@ -353,19 +353,6 @@ const configValidation$1 = () => {
   throw new Error(
     "AZUREAD_OAUTH_CLIENT_ID, AZUREAD_OAUTH_CLIENT_SECRET, and AZUREAD_TENANT_ID are required"
   );
-};
-const buildCookieOptionsWithExpiry = (absoluteExpiresAt) => {
-  const isProduction = strapi.config.get("environment") === "production";
-  const domain = strapi.config.get("admin.auth.domain");
-  return {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: "lax",
-    overwrite: true,
-    domain,
-    expires: new Date(absoluteExpiresAt),
-    path: "/admin"
-  };
 };
 const OAUTH_ENDPOINT = (tenantId) => `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`;
 const OAUTH_TOKEN_ENDPOINT = (tenantId) => `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`;
@@ -448,19 +435,18 @@ async function azureAdSignInCallback(ctx) {
       );
       await oauthService.triggerWebHook(activateUser);
     }
-    const { token: refreshToken, absoluteExpiresAt } = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
+    const { token: refreshToken } = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
     const { token: accessToken } = await sessionManager.generateAccessToken(refreshToken);
-    const cookieOptions = buildCookieOptionsWithExpiry(absoluteExpiresAt);
-    ctx.cookies.set("strapi_admin_refresh", refreshToken, cookieOptions);
-    const isProduction = strapi.config.get("environment") === "production";
-    const domain = strapi.config.get("admin.auth.domain");
-    ctx.cookies.set("jwtToken", accessToken, {
-      httpOnly: false,
-      secure: isProduction,
-      overwrite: true,
-      domain
-    });
-    ctx.redirect(strapi.config.admin.url);
+    oauthService.triggerSignInSuccess(activateUser);
+    const nonce = randomUUID();
+    const html = oauthService.renderSignUpSuccess(
+      accessToken,
+      refreshToken,
+      activateUser,
+      nonce
+    );
+    ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
+    ctx.send(html);
   } catch (e) {
     console.error(e);
     ctx.send(oauthService.renderSignUpError(e.message));
@@ -563,7 +549,7 @@ const oidcSignInCallback = async (ctx) => {
       await oauthService.triggerWebHook(activateUser);
     }
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID();
+    const nonce = randomUUID$1();
     const html = oauthService.renderSignUpSuccess(jwtToken, activateUser, nonce);
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.send(html);
@@ -814,9 +800,7 @@ const oauth = ({ strapi: strapi2 }) => ({
   },
   // Sign In Success
   renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
-    const config2 = strapi2.config.get("plugin::strapi-plugin-sso");
-    const REMEMBER_ME = config2["REMEMBER_ME"];
-    const isRememberMe = !!REMEMBER_ME;
+    strapi2.config.get("plugin::strapi-plugin-sso");
     return `
 <!doctype html>
 <html>
@@ -826,13 +810,7 @@ const oauth = ({ strapi: strapi2 }) => ({
 </noscript>
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
-  if(${isRememberMe}){
-    localStorage.setItem('jwtToken', '"${jwtToken}"');
-    localStorage.setItem('refreshToken', '"${refreshToken}"');
-  }else{
-    document.cookie = 'jwtToken=${encodeURIComponent(jwtToken)}; Path=/';
-    document.cookie = 'refreshToken=${encodeURIComponent(refreshToken)}; Path=/';
-  }
+  localStorage.setItem('jwtToken', JSON.stringify(jwtToken));
   localStorage.setItem('isLoggedIn', 'true');
   location.href = '${strapi2.config.admin.url}'
  })

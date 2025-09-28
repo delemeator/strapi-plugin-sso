@@ -143,26 +143,25 @@ async function azureAdSignInCallback(ctx) {
       // Trigger webhook
       await oauthService.triggerWebHook(activateUser);
     }
-    const { token: refreshToken, absoluteExpiresAt } =
+    // Generate tokens
+    const { token: refreshToken } =
       await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'refresh' });
-
     const { token: accessToken } =
       await sessionManager.generateAccessToken(refreshToken);
 
-    const cookieOptions = buildCookieOptionsWithExpiry(absoluteExpiresAt);
-    ctx.cookies.set('strapi_admin_refresh', refreshToken, cookieOptions);
+    // Trigger login success
+    oauthService.triggerSignInSuccess(activateUser);
 
-    const isProduction = strapi.config.get('environment') === 'production';
-    const domain = strapi.config.get('admin.auth.domain');
-
-    ctx.cookies.set('jwtToken', accessToken, {
-      httpOnly: false,
-      secure: isProduction,
-      overwrite: true,
-      domain,
-    });
-
-    ctx.redirect(strapi.config.admin.url);
+    // Render HTML/JS that sets tokens in localStorage or cookies (like Strapi expects)
+    const nonce = randomUUID();
+    const html = oauthService.renderSignUpSuccess(
+      accessToken,
+      refreshToken,
+      activateUser,
+      nonce
+    );
+    ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
+    ctx.send(html);
   } catch (e) {
     console.error(e);
     ctx.send(oauthService.renderSignUpError(e.message));
