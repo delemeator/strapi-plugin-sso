@@ -363,7 +363,7 @@ const buildCookieOptionsWithExpiry = (absoluteExpiresAt) => {
     sameSite: "lax",
     overwrite: true,
     domain,
-    expires: absoluteExpiresAt,
+    expires: new Date(absoluteExpiresAt),
     path: "/admin"
   };
 };
