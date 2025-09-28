@@ -1,6 +1,6 @@
 import axios from "axios";
 import { Buffer } from "buffer";
-import { randomUUID as randomUUID$1 } from "crypto";
+import { randomUUID } from "crypto";
 import pkceChallenge from "pkce-challenge";
 import strapiUtils from "@strapi/utils";
 import generator from "generate-password";
@@ -214,7 +214,7 @@ async function googleSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID$1();
+    const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(jwtToken, activateUser, nonce);
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.send(html);
@@ -332,7 +332,7 @@ async function cognitoSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID$1();
+    const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(jwtToken, activateUser, nonce);
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.send(html);
@@ -549,7 +549,7 @@ const oidcSignInCallback = async (ctx) => {
       await oauthService.triggerWebHook(activateUser);
     }
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID$1();
+    const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(jwtToken, activateUser, nonce);
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);
     ctx.send(html);

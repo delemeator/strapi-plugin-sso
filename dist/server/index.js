@@ -444,7 +444,7 @@ async function azureAdSignInCallback(ctx) {
     const { token: refreshToken } = await sessionManager.generateRefreshToken(activateUser.id, null, { type: "refresh" });
     const { token: accessToken } = await sessionManager.generateAccessToken(refreshToken);
     oauthService.triggerSignInSuccess(activateUser);
-    const nonce = randomUUID();
+    const nonce = crypto$1.randomUUID();
     const html = oauthService.renderSignUpSuccess(
       accessToken,
       refreshToken,
