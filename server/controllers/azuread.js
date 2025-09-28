@@ -57,11 +57,11 @@ async function azureAdSignIn(ctx) {
 
 async function azureAdSignInCallback(ctx) {
   const config = configValidation();
-  const userService = strapi.service('admin::user')
-  const sessionManager = strapi.sessionManager('admin');
+  const userService = strapi.service('admin::user');
+  const jwtService = strapi.plugin('users-permissions').service('jwt');
   const oauthService = strapi.plugin("strapi-plugin-sso").service("oauth");
   const roleService = strapi.plugin("strapi-plugin-sso").service("role");
-  const whitelistService = strapi.plugin('strapi-plugin-sso').service('whitelist')
+  const whitelistService = strapi.plugin('strapi-plugin-sso').service('whitelist');
 
   if (!ctx.query.code) {
     return ctx.send(oauthService.renderSignUpError(`code Not Found`));
@@ -128,10 +128,7 @@ async function azureAdSignInCallback(ctx) {
       await oauthService.triggerWebHook(activateUser);
     }
     // Generate tokens
-    const refreshResponse = await sessionManager.generateRefreshToken(activateUser.id, null, { type: 'session' });
-    console.log('refreshResponse', refreshResponse)
-    const accessResponse = await sessionManager.generateAccessToken(refreshResponse.token);
-    console.log('accessResponse', accessResponse)
+    const token = jwtService.issue({ id: activateUser.id });
 
     // Trigger login success
     oauthService.triggerSignInSuccess(activateUser);
@@ -139,9 +136,7 @@ async function azureAdSignInCallback(ctx) {
     // Render HTML/JS that sets tokens in localStorage or cookies (like Strapi expects)
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
-      refreshResponse.token,
-      refreshResponse.token,
-      activateUser,
+      token,
       nonce
     );
     ctx.set("Content-Security-Policy", `script-src 'nonce-${nonce}'`);

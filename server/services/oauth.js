@@ -80,7 +80,7 @@ export default ({strapi}) => ({
     });
   },
   // Sign In Success
-  renderSignUpSuccess(jwtToken, refreshToken, user, nonce) {
+  renderSignUpSuccess(jwtToken, nonce) {
     return `
 <!doctype html>
 <html>
@@ -91,7 +91,6 @@ export default ({strapi}) => ({
 <script nonce="${nonce}">
  window.addEventListener('load', function() {
   localStorage.setItem('jwtToken', ${JSON.stringify(jwtToken)});
-  localStorage.setItem('isLoggedIn', 'true');
   location.href = '${strapi.config.admin.url}'
  })
 </script>
