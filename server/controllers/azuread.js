@@ -215,12 +215,9 @@ async function azureAdSignInCallback(ctx) {
       'refresh',
       refreshToken.absoluteExpiresAt
     );
-    console.log(refreshToken)
-    console.log(cookieOptions)
     ctx.cookies.set(REFRESH_COOKIE_NAME, refreshToken.token, cookieOptions);
 
     const accessToken = await sessionManager.generateAccessToken(refreshToken.token);
-    console.log(accessToken)
 
     const nonce = randomUUID();
     const html = oauthService.renderSignUpSuccess(
